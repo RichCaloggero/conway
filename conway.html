@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+
+<title>Conway's game of life</title>
+
+</head>
+<body>
+<h1>Test</h1>
+<div role="status" id="status">
+</div>
+
+<main  id="conway" aria-label="Conway">
+<div id="gridSize">
+<label>grid size: <input type="text" value="30"></label>
+</div>
+
+<div id="generationRate">
+<label>generation rate: <input type="text" value="60"></label>
+</div>
+
+<div id="initialLifeProbability">
+<label>initial life probability: <input type="text" value="0.5"></label>
+</div>
+
+<div id="audioDurationFactor">
+<label>audio duration factor: <input type="text" value="0.005"></label>
+</div>
+
+<div id="liveFrequency">
+<label>live frequency: <input type="text" value="300"></label>
+</div>
+
+<div id="deadFrequency">
+<label>dead frequency: <input type="text" value="0"></label>
+</div>
+
+<div id="liveCells">
+<label>live cells: <input type="text"></label>
+</div>
+
+<div id="testMode">
+<label>test mode: <input type="checkbox" accesskey="t"></label>
+</div>
+
+<div>
+<button id="start" accesskey="s">Start</button>
+<button id="stop" accesskey="x">Stop</button>
+<button id="playPattern" accesskey="p">Play pattern</button>
+<button id="currentLiveCells" accesskey="l">Current live cells</button>
+<button id="replay" accesskey="r">Replay</button>
+</div>
+</main>
+
+<script src="conway.js"></script>
+<script>
+var start = $("#start");
+var stop = $("#stop");
+var currentLiveCells = $("#currentLiveCells");
+var replay = $("#replay");
+var playPattern = $("#playPattern");
+
+var game = null;
+var audioContext = new AudioContext ();
+
+start.addEventListener ("click", () => game = run (audioContext));
+
+
+function run (audioContext) {
+if (game) {
+game.stop ();
+game = null;
+} // if
+
+game = new Conway.GameOfLife({
+audio: audioContext,
+gridSize: $("#gridSize input").value,
+initialLifeProbability: $("#initialLifeProbability input").value,
+liveFrequency: $("#liveFrequency input").value,
+deadFrequency: $("#deadFrequency input").value,
+audioDurationFactor: $("#audioDurationFactor input").value, // each tone lasts for audioDurationFactor * animationRate
+animationRate: $("#generationRate input").value, // milliseconds between generations,
+
+liveCells: $("#liveCells input").value,
+testMode: $("#testMode input").checked,
+
+// callbacks
+alive: (count) => message (`${count} alive.`),
+dead: (count) => message (`All dead after ${count} generations.`),
+stop: (generations, alive, cells) => {
+message (`User stop after ${generations} generations with ${alive} live cells.`);
+} // stop
+
+}); // game
+
+stop.addEventListener ("click", () => game.stop());
+currentLiveCells.addEventListener ("click", () => $("#liveCells input").value = game.currentLiveCells());
+replay.addEventListener ("click", () => game.replayLastGeneration());
+playPattern.addEventListener ("click", () => game.playPattern(game.currentLiveCells(), 200));
+
+return game;
+} // run
+
+
+function $(e) {
+return document.querySelector (e);
+} // $
+
+
+function message (text) {
+document.querySelector ("#status").innerHTML = text;
+} // message
+
+</script>
+
+</body>
+</html>
