@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+
+<title>panner test</title>
+
+</head>
+<body>
+<h1>Test</h1>
+<div role="status" id="status">
+</div>
+
+<script>
+let testData = [[0,0], [5,5], [10,10], [15,15], [20,20], [25,25], [29,29]];
+let c = new AudioContext();
+let p = createPanners (c, 30);
+let o = createOscillator (c, 600);
+runTest (testData);
+
+function runTest (data) {
+if (!data || data.length <= 0) return;
+
+let coordinates = data.shift ();
+let x = coordinates[0];
+let y = coordinates[1];
+o.connect (p[x][y]);
+
+setTimeout (() => {
+o.disconnect (p[x][y]);
+setTimeout (() => runTest (data), 500);
+}, 500);
+} // runTest
+
+
+function createOscillator (audio, frequency) {
+let osc = audio.createOscillator ();
+osc.frequency.value = frequency;
+osc.start ();
+return osc;
+} // createOscillator
+
+function createPanners (audio, gridSize) {
+let output = audio.createGain ();
+output.gain.value = 0.2;
+output.connect (audio.destination);
+
+let result = [];
+for (let r =0; r < gridSize; r++) {
+let row = [];
+
+for (let c =0; c < gridSize; c++) {
+let panner = createPanner (audio, r,c, gridSize);
+panner.connect (output);
+row.push (panner);
+} // for col
+
+result.push (row);
+} // for row
+
+return result;
+
+function createPanner (audio, row, col, gridSize) {
+let panner = audio.createPanner ();
+panner.setOrientation (0,0,0);
+panner.panningModel = "HRTF";
+panner.distanceModel = "linear";
+//panner.distanceModel = 'inverse';
+panner.refDistance = 1;
+panner.maxDistance = 10000;
+panner.rolloffFactor = 1;
+panner.coneInnerAngle = 360;
+panner.coneOuterAngle = 0;
+panner.coneOuterGain = 0;
+
+panner.positionX.value = (row-gridSize/2);
+panner.positionZ.value = (col-gridSize/2);
+panner.positionY.value = 0;
+return panner;
+} // createPanner
+} // createPanners
+
+function message (text) {
+document.querySelector ("#status").innerHTML = text;
+} // message
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+
+<title>panner test</title>
+
+</head>
+<body>
+<h1>Test</h1>
+<div role="status" id="status">
+</div>
+
+<script>
+let c = new AudioContext();
+let o = createOscillator (c, 600);
+let p = createPanner (c, 0,0);
+o.connect (p);
+p.connect (c.destination);
+
+circle ([0,0], 30);
+
+function circle (c, r, deltaA) {
+let cx = c[0];
+let cy = c[1];
+c.listener.positionX.value = cx;
+c.listener.positionZ.value = cy;
+
+o.connect (p);
+let i = 0;
+message (`circle: center ${c}, radius ${r}`);
+let a = 0;
+setTimeout (() => position(), 200);
+
+function position () {
+p.positionX = r * (cx + Math.cos(a));
+p.positionZ = r * (cy + Math.sin(a));
+a += deltaA;
+} // position
+} // circle
+
+
+function createOscillator (audio, frequency) {
+let osc = audio.createOscillator ();
+osc.frequency.value = frequency;
+osc.start ();
+return osc;
+} // createOscillator
+
+function createPanners (audio, gridSize) {
+let output = audio.createGain ();
+output.gain.value = 0.2;
+output.connect (audio.destination);
+
+let result = [];
+for (let r =0; r < gridSize; r++) {
+let row = [];
+
+for (let c =0; c < gridSize; c++) {
+let panner = createPanner (audio, r,c, gridSize);
+panner.connect (output);
+row.push (panner);
+} // for col
+
+result.push (row);
+} // for row
+
+return result;
+} // createPanners
+
+function createPanner (audio, row, col, gridSize) {
+let panner = audio.createPanner ();
+panner.setOrientation (0,0,0);
+panner.panningModel = "HRTF";
+panner.distanceModel = "linear";
+//panner.distanceModel = 'inverse';
+panner.refDistance = 1;
+panner.maxDistance = 10000;
+panner.rolloffFactor = 1;
+panner.coneInnerAngle = 360;
+panner.coneOuterAngle = 0;
+panner.coneOuterGain = 0;
+
+return panner;
+} // createPanner
+
+function message (text) {
+document.querySelector ("#status").innerHTML = text;
+} // message
+
+</script>
+
+</body>
+</html>
