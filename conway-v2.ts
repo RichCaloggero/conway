@@ -103,7 +103,7 @@ for (let r =0; r < gridSize; r++) {
 let row = [];
 
 for (let c =0; c < gridSize; c++) {
-let panner = createPanner (this.audio, c,r, gridSize);
+let panner = createPanner (this.audio, r,c, gridSize);
 panner.connect (output);
 row.push (panner);
 } // for col
@@ -119,7 +119,7 @@ panner.setOrientation (0,0,0);
 panner.panningModel = "HRTF";
 panner.distanceModel = "linear";
 //panner.distanceModel = 'inverse';
-panner.refDistance = .1;
+panner.refDistance = 1;
 panner.maxDistance = 10000;
 panner.rolloffFactor = 1;
 panner.coneInnerAngle = 360;
@@ -282,6 +282,14 @@ try {this.deadTone.disconnect (panner);} catch (e) {}
 
 if (cell.live && this.liveFrequency > 0) this.liveTone.connect (panner);
 else if (this.deadFrequency > 0) this.deadTone.connect (panner);
+
+document.dispatchEvent (new CustomEvent("playCell", {detail: {
+cx: cell.row, cy: cell.col,
+px: panner.positionX.value, py: panner.positionZ.value,
+live: cell.live
+} // detail
+})); // dispatch
+
 } // public generateAudio
 
 public stop () {
@@ -304,11 +312,14 @@ if (alive > 0 && this.options.replay) this.options.replay.call (this, alive);
 */
 } // replayLastGeneration
 
-public playPattern (coordinates, dt) {
+public playPattern (coordinates, dt = 500) {
 if (coordinates.length > 0) {
 let c = coordinates.shift ();
 this.generateAudio (new Cell (c[0], c[1], true));
-setTimeout (() => this.playPattern(coordinates, dt), dt || 500);
+setTimeout (() => {
+this.disconnectAll ();
+setTimeout (() => this.playPattern(coordinates, dt), dt);
+}, dt);
 
 } else {
 setTimeout (() => this.disconnectAll(), dt || 500);

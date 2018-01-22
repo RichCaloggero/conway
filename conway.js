@@ -62,7 +62,7 @@ var Conway;
                 for (var r = 0; r < gridSize; r++) {
                     var row = [];
                     for (var c = 0; c < gridSize; c++) {
-                        var panner = createPanner(this.audio, c, r, gridSize);
+                        var panner = createPanner(this.audio, r, c, gridSize);
                         panner.connect(output);
                         row.push(panner);
                     } // for col
@@ -75,7 +75,7 @@ var Conway;
                     panner.panningModel = "HRTF";
                     panner.distanceModel = "linear";
                     //panner.distanceModel = 'inverse';
-                    panner.refDistance = .1;
+                    panner.refDistance = 1;
                     panner.maxDistance = 10000;
                     panner.rolloffFactor = 1;
                     panner.coneInnerAngle = 360;
@@ -238,6 +238,12 @@ var Conway;
                 this.liveTone.connect(panner);
             else if (this.deadFrequency > 0)
                 this.deadTone.connect(panner);
+            document.dispatchEvent(new CustomEvent("playCell", { detail: {
+                    cx: cell.row, cy: cell.col,
+                    px: panner.positionX.value, py: panner.positionZ.value,
+                    live: cell.live
+                } // detail
+            })); // dispatch
         }; // public generateAudio
         GameOfLife.prototype.stop = function () {
             this.lastGeneration = true;
@@ -258,10 +264,14 @@ var Conway;
         }; // replayLastGeneration
         GameOfLife.prototype.playPattern = function (coordinates, dt) {
             var _this = this;
+            if (dt === void 0) { dt = 500; }
             if (coordinates.length > 0) {
                 var c = coordinates.shift();
                 this.generateAudio(new Cell(c[0], c[1], true));
-                setTimeout(function () { return _this.playPattern(coordinates, dt); }, dt || 500);
+                setTimeout(function () {
+                    _this.disconnectAll();
+                    setTimeout(function () { return _this.playPattern(coordinates, dt); }, dt);
+                }, dt);
             }
             else {
                 setTimeout(function () { return _this.disconnectAll(); }, dt || 500);

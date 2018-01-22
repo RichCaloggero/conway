@@ -103,6 +103,10 @@ playPattern.addEventListener ("click", () => game.playPattern(game.currentLiveCe
 return game;
 } // run
 
+document.addEventListener ("playCell", (e) => {
+let data = e.detail;
+message (`${data.cx},${data.cy} => ${data.px},${data.py}`);
+});
 
 function $(e) {
 return document.querySelector (e);
