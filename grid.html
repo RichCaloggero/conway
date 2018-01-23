@@ -15,10 +15,8 @@
 <script>
 let testData1 = [[0,0], [5,5], [10,10], [15,15], [20,20], [25,25], [29,29]];
 let testData2 = [[0,0], [1,1], [2,2], [3,3], [4,4], [5,5], [6,6], [7,7], [8,8], [9,9], [10,10], [11,11], [12,12], [13,13], [14,14], [15,15], [16,16], [17,17], [18,18], [19,19], [20,20], [21,21], [22,22], [23,23], [24,24], [25,25], [26,26], [27,27], [28,28], [29,29]];
-let testData3 = generateCoordinates (-15,15,1, -15,15,1);
-let testData = testData3.slice();
 
-let dt = 10;
+let dt = 4;
 let audio = new AudioContext();
 
 let o = createOscillator (audio, 600);
@@ -35,15 +33,16 @@ audio.listener.setPosition (0, -1, 0);
 audio.listener.setOrientation (0,0,-1, 0,1,0);
 panner.setOrientation (0,0,0);
 
-runTest (testData, n);
+runTest (generateSpiral (30, [0,0], .1), n);
 
-function runTest (data, sound) {
-if (!data || data.length <= 0) {
+function runTest (generator, sound) {
+let data = generator.next();
+if (data.done) {
 sound.disconnect();
 return;
 } // if
 
-let [x,y] = data.shift();
+let [x,y] = data.value;
 panner.positionX.value = x;
 panner.positionZ.value = y;
 sound.connect (panner);
@@ -51,7 +50,7 @@ sound.connect (panner);
 
 //setTimeout (() => {
 //sound.disconnect (panner);
-setTimeout (() => runTest (data, sound), dt);
+setTimeout (() => runTest (generator, sound), dt);
 //}, dt);
 } // runTest
 
@@ -149,11 +148,11 @@ function createPanner (audio, row, col, gridSize) {
 let panner = audio.createPanner ();
 panner.setOrientation (0,0,0);
 panner.panningModel = "HRTF";
-panner.distanceModel = "linear";
-//panner.distanceModel = 'inverse';
+//panner.distanceModel = "linear";
+panner.distanceModel = 'inverse';
 panner.refDistance = 1;
-panner.maxDistance = 0;
-panner.rolloffFactor = 1;
+panner.maxDistance = 1000;
+panner.rolloffFactor = 0.1;
 panner.coneInnerAngle = 360;
 panner.coneOuterAngle = 0;
 panner.coneOuterGain = 0;
@@ -161,18 +160,65 @@ panner.coneOuterGain = 0;
 return panner;
 } // createPanner
 
-function generateCoordinates (minX = 0, maxX, dX = 1, minY = 0, maxY, dY = 1) {
-let coordinates = [];
+function* generateGrid (minX = 0, maxX, dX = 1, minY = 0, maxY, dY = 1) {
+if (! maxX || !maxY) {
+alert ("generateGrid: must specify at least maxX and maxY");
+return;
+} // if
 
-if (! maxX || !maxY) alert ("generateCoordinates: must specify at least maxX and maxY");
 for (let x=minX; x<=maxX; x += dX) {
 for (let y=minY; y<=maxY; y += dY) {
-coordinates.push ([x,y]);
+yield ([x,y]);
 } // for y
 } // for x
+} // generateGrid
 
-return coordinates;
-} // generateCoordinates
+function* generateCircle (r, c = [0,0], dA = 0.1, revolutions = 1) {
+let a = 0;
+const pi = Math.PI;
+const [cX,cY] = c;
+const maxA = 2*pi * revolutions;
+
+while (a <= maxA) {
+yield ([
+r * (c[0] + Math.cos(a)),
+r * (c[1] + Math.sin(a))
+]);
+
+a += dA;
+} // while
+} // generateCircle
+
+function* generateSpiral (r, c = [0,0], dA = 0.1) {
+let a = 0;
+const pi = Math.PI;
+const [cX,cY] = c;
+
+while (distance(point(a), c) >= dA/32) {
+yield (point(a));
+a += dA;
+r -= dA/8;
+} // while
+
+function point (a) {
+return [
+r * (cX + Math.cos(a)),
+r * (cY + Math.sin(a))
+];
+} // point
+} // generateSpiral
+
+function distance (p1, p2) {
+if (p1 instanceof Array && p2 instanceof Array) {
+return Math.sqrt (
+Math.pow (p2[0]-p1[0], 2)
++ Math.pow (p2[1]-p1[1], 2)
+);
+} else {
+alert ("distance: both arguments must be arrays");
+return -1;
+} // if
+} // distance
 
 function message (text) {
 document.querySelector ("#status").innerHTML = text;
