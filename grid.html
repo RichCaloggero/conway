@@ -13,24 +13,38 @@
 </div>
 
 <script>
-let testData = [[0,0], [5,5], [10,10], [15,15], [20,20], [25,25], [29,29]];
-let c = new AudioContext();
-let p = createPanners (c, 30);
-let o = createOscillator (c, 600);
+let testData1 = [[0,0], [5,5], [10,10], [15,15], [20,20], [25,25], [29,29]];
+let testData2 = [[0,0], [1,1], [2,2], [3,3], [4,4], [5,5], [6,6], [7,7], [8,8], [9,9], [10,10], [11,11], [12,12], [13,13], [14,14], [15,15], [16,16], [17,17], [18,18], [19,19], [20,20], [21,21], [22,22], [23,23], [24,24], [25,25], [26,26], [27,27], [28,28], [29,29]];
+
+let testData = testData2;
+let dt = 100;
+let audio = new AudioContext();
+let p = createPanners (audio, 30);
+let o = createOscillator (audio, 600);
+let output = audio.createGain();
+output.gain.value = .1;
+output.connect (audio.destination);
+let panner = createPanner (audio, 0,0, 30);
+panner.connect (output);
+
+audio.listener.setPosition (15, -1, 15);
+audio.listener.setOrientation (0,0,-1, 0,1,0);
+panner.setOrientation (0,0,0);
+
 runTest (testData);
 
 function runTest (data) {
 if (!data || data.length <= 0) return;
-
-let coordinates = data.shift ();
-let x = coordinates[0];
-let y = coordinates[1];
-o.connect (p[x][y]);
+let [x,y] = data.shift();
+panner.positionX.value = x;
+panner.positionZ.value = y;
+o.connect (panner);
+message (`${x},${y} => ${panner.positionX.value},${panner.positionZ.value}, ${panner.orientationX.value}, ${panner.orientationZ.value}`);
 
 setTimeout (() => {
-o.disconnect (p[x][y]);
-setTimeout (() => runTest (data), 500);
-}, 500);
+o.disconnect (panner);
+setTimeout (() => runTest (data), dt);
+}, dt);
 } // runTest
 
 
@@ -43,7 +57,7 @@ return osc;
 
 function createPanners (audio, gridSize) {
 let output = audio.createGain ();
-output.gain.value = 0.2;
+output.gain.value = 0.05;
 output.connect (audio.destination);
 
 let result = [];
@@ -60,6 +74,7 @@ result.push (row);
 } // for row
 
 return result;
+} // createPanners
 
 function createPanner (audio, row, col, gridSize) {
 let panner = audio.createPanner ();
@@ -68,18 +83,14 @@ panner.panningModel = "HRTF";
 panner.distanceModel = "linear";
 //panner.distanceModel = 'inverse';
 panner.refDistance = 1;
-panner.maxDistance = 10000;
+panner.maxDistance = 0;
 panner.rolloffFactor = 1;
 panner.coneInnerAngle = 360;
 panner.coneOuterAngle = 0;
 panner.coneOuterGain = 0;
 
-panner.positionX.value = (row-gridSize/2);
-panner.positionZ.value = (col-gridSize/2);
-panner.positionY.value = 0;
 return panner;
 } // createPanner
-} // createPanners
 
 function message (text) {
 document.querySelector ("#status").innerHTML = text;
