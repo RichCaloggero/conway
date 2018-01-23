@@ -15,36 +15,44 @@
 <script>
 let testData1 = [[0,0], [5,5], [10,10], [15,15], [20,20], [25,25], [29,29]];
 let testData2 = [[0,0], [1,1], [2,2], [3,3], [4,4], [5,5], [6,6], [7,7], [8,8], [9,9], [10,10], [11,11], [12,12], [13,13], [14,14], [15,15], [16,16], [17,17], [18,18], [19,19], [20,20], [21,21], [22,22], [23,23], [24,24], [25,25], [26,26], [27,27], [28,28], [29,29]];
+let testData3 = generateCoordinates (-15,15,1, -15,15,1);
+let testData = testData3.slice();
 
-let testData = testData2;
-let dt = 100;
+let dt = 10;
 let audio = new AudioContext();
-let p = createPanners (audio, 30);
+
 let o = createOscillator (audio, 600);
+let n = createPinkNoise (audio);
+//let p = createPanners (audio, 30);
+
 let output = audio.createGain();
-output.gain.value = .1;
+output.gain.value = .2;
 output.connect (audio.destination);
 let panner = createPanner (audio, 0,0, 30);
 panner.connect (output);
 
-audio.listener.setPosition (15, -1, 15);
+audio.listener.setPosition (0, -1, 0);
 audio.listener.setOrientation (0,0,-1, 0,1,0);
 panner.setOrientation (0,0,0);
 
-runTest (testData);
+runTest (testData, n);
 
-function runTest (data) {
-if (!data || data.length <= 0) return;
+function runTest (data, sound) {
+if (!data || data.length <= 0) {
+sound.disconnect();
+return;
+} // if
+
 let [x,y] = data.shift();
 panner.positionX.value = x;
 panner.positionZ.value = y;
-o.connect (panner);
-message (`${x},${y} => ${panner.positionX.value},${panner.positionZ.value}, ${panner.orientationX.value}, ${panner.orientationZ.value}`);
+sound.connect (panner);
+//message (`${x},${y} => ${panner.positionX.value},${panner.positionZ.value}, ${panner.orientationX.value}, ${panner.orientationZ.value}`);
 
-setTimeout (() => {
-o.disconnect (panner);
-setTimeout (() => runTest (data), dt);
-}, dt);
+//setTimeout (() => {
+//sound.disconnect (panner);
+setTimeout (() => runTest (data, sound), dt);
+//}, dt);
 } // runTest
 
 
@@ -54,6 +62,67 @@ osc.frequency.value = frequency;
 osc.start ();
 return osc;
 } // createOscillator
+
+function createBrownNoise (audioContext) {
+var bufferSize = 4096;
+var brownNoise = (function() {
+    var lastOut = 0.0;
+    var node = audioContext.createScriptProcessor(bufferSize, 1, 1);
+    node.onaudioprocess = function(e) {
+        var output = e.outputBuffer.getChannelData(0);
+        for (var i = 0; i < bufferSize; i++) {
+            var white = Math.random() * 2 - 1;
+            output[i] = (lastOut + (0.02 * white)) / 1.02;
+            lastOut = output[i];
+            output[i] *= 3.5; // (roughly) compensate for gain
+        }
+    }
+    return node;
+})();
+
+return brownNoise;
+} // createBrownNoise
+
+function createPinkNoise (audioContext) {
+var bufferSize = 4096;
+var pinkNoise = (function() {
+    var b0, b1, b2, b3, b4, b5, b6;
+    b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
+    var node = audioContext.createScriptProcessor(bufferSize, 1, 1);
+    node.onaudioprocess = function(e) {
+        var output = e.outputBuffer.getChannelData(0);
+        for (var i = 0; i < bufferSize; i++) {
+            var white = Math.random() * 2 - 1;
+            b0 = 0.99886 * b0 + white * 0.0555179;
+            b1 = 0.99332 * b1 + white * 0.0750759;
+            b2 = 0.96900 * b2 + white * 0.1538520;
+            b3 = 0.86650 * b3 + white * 0.3104856;
+            b4 = 0.55000 * b4 + white * 0.5329522;
+            b5 = -0.7616 * b5 - white * 0.0168980;
+            output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+            output[i] *= 0.11; // (roughly) compensate for gain
+            b6 = white * 0.115926;
+        }
+    }
+    return node;
+})();
+
+return pinkNoise;
+} // createPinkNoise
+
+function createWhiteNoise (audioContext) {
+var bufferSize = 4096;
+var whiteNoise = audioContext.createScriptProcessor(bufferSize, 1, 1);
+whiteNoise.onaudioprocess = function(e) {
+    var output = e.outputBuffer.getChannelData(0);
+    for (var i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+    }
+
+return whiteNoise;
+} // createWhiteNoise
+}
+
 
 function createPanners (audio, gridSize) {
 let output = audio.createGain ();
@@ -91,6 +160,19 @@ panner.coneOuterGain = 0;
 
 return panner;
 } // createPanner
+
+function generateCoordinates (minX = 0, maxX, dX = 1, minY = 0, maxY, dY = 1) {
+let coordinates = [];
+
+if (! maxX || !maxY) alert ("generateCoordinates: must specify at least maxX and maxY");
+for (let x=minX; x<=maxX; x += dX) {
+for (let y=minY; y<=maxY; y += dY) {
+coordinates.push ([x,y]);
+} // for y
+} // for x
+
+return coordinates;
+} // generateCoordinates
 
 function message (text) {
 document.querySelector ("#status").innerHTML = text;
