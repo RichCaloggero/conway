@@ -13,31 +13,50 @@
 </div>
 
 <script>
-let c = new AudioContext();
-let o = createOscillator (c, 600);
-let p = createPanner (c, 0,0);
+let audio = new AudioContext();
+let o = createOscillator (audio, 600);
+let p = createPanner (audio, 0,0);
+let g = audio.createGain ();
+g.gain.value = 0.01;
 o.connect (p);
-p.connect (c.destination);
+p.connect (g);
+g.connect (audio.destination);
 
-circle ([0,0], 30);
+circle ([0,0], 30, .1,60, 100);
 
-function circle (c, r, deltaA) {
-let cx = c[0];
-let cy = c[1];
-c.listener.positionX.value = cx;
-c.listener.positionZ.value = cy;
-
-o.connect (p);
-let i = 0;
-message (`circle: center ${c}, radius ${r}`);
+function circle (c, r, deltaA = .1, dt = 60, count = 10) {
+let cX = c[0];
+let cY = c[1];
 let a = 0;
-setTimeout (() => position(), 200);
+audio.listener.setPosition (cX, 0, cY);
+audio.listener.setOrientation = (0,0,-1, 0,1,0);
 
-function position () {
-p.positionX = r * (cx + Math.cos(a));
-p.positionZ = r * (cy + Math.sin(a));
+function fX (a) {return r * (Math.cos(a) + cX);}
+function fY (a) {return r * (Math.sin(a) + cY);}
+
+message (`circle: center ${c}, radius ${r}`);
+run ();
+
+function run () {
+if (count === 0) {
+o.disconnect (p);
+message (`Done.`);
+return;
+} // if
+
+count -= 1;
+let x = fX(a);
+let y = fY(a);
+//message (`position: ${x}, ${y}`);
+p.positionX.value = x;
+p.positionZ.value = y;
+
+setTimeout (() => {
+setTimeout (() => run(), dt);
+}, dt);
+
 a += deltaA;
-} // position
+} // run
 } // circle
 
 
