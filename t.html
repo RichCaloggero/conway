@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+
+<title>Observable</title>
+
+</head>
+<body>
+<h1>Test</h1>
+<div role="status" id="status">
+</div>
+<script>
+class LazyArray {
+constructor () {
+function* generate  () {
+let buffer = [];
+buffer.push (yield);
+while (true) buffer.push (yield buffer.shift());
+} // generate
+
+this.generateValue = generate();
+} // constructor
+
+push (value) {this.generateValue.next(value);}
+subscribe (newval) {return newval (this.generateValue.next().value);}
+} // class
+
+a = new LazyArray ();
+setInterval (() => a.push(Math.random()), 1000);
+
+a.subscribe ( (value) => message(`value: ${value}`));
+
+
+
+function message (text) {
+document.querySelector ("#status").innerHTML = text;
+} // message
+
+</script>
+
+</body>
+</html>
