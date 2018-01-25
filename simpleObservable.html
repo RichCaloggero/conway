@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+
+<title>Observable</title>
+
+</head>
+<body>
+<h1>Test</h1>
+<div role="status" id="status">
+</div>
+<script>
+class LazyArray {
+constructor () {
+this.subscribers = [];
+this.pipeline = [];
+} // constructor
+
+subscribe (subscriber) {
+this.subscribers.push (subscriber);
+} // subscribe
+
+
+process (value) {
+let token = {value: value, active: true};
+
+for (let i=0; i<this.pipeline.length; i++) {
+token = this.pipeline[i](token.value);
+if (! token.active) break;
+} // loop over pipeline
+
+if (token.active) this.notifySubscribers (token.value);
+} // process
+
+map (f) {
+this.pipeline.push (function (value) {
+return {value: f(value), active: true};
+}); // push
+
+return this;
+} // map
+
+filter (f) {
+this.pipeline.push (function (value) {
+return {value: value, active: Boolean(f(value))};
+}); // push
+
+return this;
+} // filter
+
+push (value) {
+this.process (value);
+return value;
+} // push
+
+notifySubscribers (value) {
+this.subscribers.forEach (subscriber => subscriber(value));
+} // notifySubscribers
+
+} // class
+
+
+a = new LazyArray ();
+setInterval (() => a.push(Math.random()), 1000);
+
+function add1(x) {return x+1;}
+
+a.map (add1)
+.filter (x => x<1.5)
+.subscribe (p => message (p));
+
+
+function message (text) {
+document.querySelector ("#status").innerHTML = text;
+} // message
+
+</script>
+
+</body>
+</html>
